@@ -558,6 +558,10 @@ impl Application {
         }
 
         let info = match action {
+            IambAction::Test(act) => {
+                self.screen.current_window_mut()?.test_command(act, ctx, store, self.store.clone()).await?
+            },
+
             IambAction::ClearUnreads => {
                 let user_id = &store.application.settings.profile.user_id;
 

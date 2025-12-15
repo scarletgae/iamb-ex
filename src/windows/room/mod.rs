@@ -703,6 +703,19 @@ impl RoomState {
             RoomState::Space(space) => space.id(),
         }
     }
+
+pub async fn test_command(
+        &mut self,
+        act: crate::base::TestAction,
+        ctx: ProgramContext,
+        store: &mut ProgramStore,
+        store_arc: crate::base::AsyncProgramStore,
+    ) -> IambResult<EditInfo> {
+        match self {
+            RoomState::Chat(chat) => chat.test_command(act, ctx, store, store_arc).await,
+            _ => Err(UIError::Failure("you cant run the test here idiot".into())),
+        }
+    }
 }
 
 impl Editable<ProgramContext, ProgramStore, IambInfo> for RoomState {

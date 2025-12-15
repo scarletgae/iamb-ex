@@ -98,6 +98,8 @@ use crate::message::{
 };
 use crate::worker::Requester;
 
+use crate::base::AsyncProgramStore;
+
 use super::scrollback::{Scrollback, ScrollbackState};
 
 /// State needed for rendering [Chat].
@@ -409,7 +411,9 @@ impl ChatState {
 
                 let reaction = Annotation::new(event_id, emoji);
                 let msg = ReactionEventContent::new(reaction);
-                let _ = room.send(msg).await.map_err(IambError::from)?;
+                
+                let resp = room.send(msg).await.map_err(IambError::from)?;
+                store.application.reaction_timings.insert(resp.event_id.clone(), std::time::Instant::now());
 
                 Ok(None)
             },
@@ -697,6 +701,77 @@ impl ChatState {
         }
 
         store.application.worker.typing_notice(self.room_id.clone());
+    }
+
+    pub async fn test_command(
+        &mut self,
+        act: crate::base::TestAction,
+        _: ProgramContext,
+        store: &mut ProgramStore,
+        store_arc: AsyncProgramStore,
+    ) -> IambResult<EditInfo> {
+        let info = store.application.rooms.get_or_default(self.room_id.clone());
+
+        match act {
+            crate::base::TestAction::Start => {
+                if info.test_handle.is_some() {
+                    return Err(UIError::Failure("already running idiot".into()));
+                }
+
+                let msg = self.scrollback.get_mut(info).ok_or(IambError::NoSelectedMessage)?;
+                let event_id = match &msg.event {
+                    MessageEvent::Original(ev) => ev.event_id.clone(),
+                    MessageEvent::EncryptedOriginal(ev) => ev.event_id.clone(),
+                    MessageEvent::Local(id, _) => id.clone(),
+                    _ => return Err(UIError::Failure("cant react to this idk".into())),
+                };
+
+                let client = store.application.worker.client.clone();
+                let room_id = self.room_id.clone();
+                let event_id = event_id.clone();
+                
+                let thread_store = store_arc.clone(); 
+
+                let handle = tokio::spawn(async move {
+                    let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
+                    interval.tick().await;
+
+                    loop {
+                        if let Some(room) = client.get_room(&room_id) {
+                            let reaction = Annotation::new(event_id.clone(), "❤️".to_string());
+                            let content = ReactionEventContent::new(reaction);
+                            
+                            if let Ok(resp) = room.send(content).await {
+                                let now = std::time::Instant::now();
+                                {
+                                    let mut locked = thread_store.lock().await;
+                                    locked.application.reaction_timings.insert(resp.event_id.clone(), now);
+                                }
+
+                                interval.tick().await;
+                                let _ = room.redact(&resp.event_id, None, None).await;
+                                interval.tick().await;
+                            } else {
+                                interval.tick().await;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                });
+
+                info.test_handle = Some(handle.abort_handle());
+                Ok(Some(InfoMessage::from("test started")))
+            },
+            crate::base::TestAction::Stop => {
+                if let Some(handle) = info.test_handle.take() {
+                    handle.abort();
+                    Ok(Some(InfoMessage::from("test stopped")))
+                } else {
+                    Err(UIError::Failure("nothing running idiot".into()))
+                }
+            }
+        }
     }
 }
 

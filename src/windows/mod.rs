@@ -405,6 +405,20 @@ impl IambWindow {
             return Err(IambError::NoSelectedRoom.into());
         }
     }
+
+    pub async fn test_command(
+        &mut self,
+        act: crate::base::TestAction,
+        ctx: ProgramContext,
+        store: &mut ProgramStore,
+        store_arc: crate::base::AsyncProgramStore,
+    ) -> IambResult<EditInfo> {
+        if let IambWindow::Room(w) = self {
+            w.test_command(act, ctx, store, store_arc).await
+        } else {
+            return Err(UIError::Failure("idk honestly".into()));
+        }
+    }
 }
 
 pub type DirectListState = ListState<DirectItem, IambInfo>;

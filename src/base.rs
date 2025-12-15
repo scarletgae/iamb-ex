@@ -90,6 +90,8 @@ use modalkit::{
     prelude::{CommandType, WordStyle},
 };
 
+use tokio::task::AbortHandle;
+
 use crate::config::ImagePreviewProtocolValues;
 use crate::message::ImageStatus;
 use crate::notifications::NotificationHandle;
@@ -116,6 +118,13 @@ fn is_mxid_char(c: char) -> bool {
 }
 
 const ROOM_FETCH_DEBOUNCE: Duration = Duration::from_secs(2);
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TestAction {
+    Start,
+    Stop,
+}
+
 
 /// Empty type used solely to implement [ApplicationInfo].
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -544,6 +553,8 @@ pub enum IambAction {
 
     /// Clear all unread messages.
     ClearUnreads,
+
+    Test(TestAction),
 }
 
 impl IambAction {
@@ -597,6 +608,7 @@ impl ApplicationAction for IambAction {
             IambAction::ToggleScrollbackFocus => SequenceStatus::Break,
             IambAction::Verify(..) => SequenceStatus::Break,
             IambAction::VerifyRequest(..) => SequenceStatus::Break,
+            IambAction::Test(_) => SequenceStatus::Break,
         }
     }
 
@@ -613,6 +625,7 @@ impl ApplicationAction for IambAction {
             IambAction::ToggleScrollbackFocus => SequenceStatus::Atom,
             IambAction::Verify(..) => SequenceStatus::Atom,
             IambAction::VerifyRequest(..) => SequenceStatus::Atom,
+            IambAction::Test(_) => SequenceStatus::Atom,
         }
     }
 
@@ -629,6 +642,7 @@ impl ApplicationAction for IambAction {
             IambAction::ToggleScrollbackFocus => SequenceStatus::Ignore,
             IambAction::Verify(..) => SequenceStatus::Ignore,
             IambAction::VerifyRequest(..) => SequenceStatus::Ignore,
+            IambAction::Test(_) => SequenceStatus::Ignore,
         }
     }
 
@@ -645,6 +659,7 @@ impl ApplicationAction for IambAction {
             IambAction::ToggleScrollbackFocus => false,
             IambAction::Verify(..) => false,
             IambAction::VerifyRequest(..) => false,
+            IambAction::Test(_) => false,
         }
     }
 }
@@ -924,6 +939,8 @@ pub struct RoomInfo {
 
     /// The last time the room was rendered, used to detect if it is currently open.
     pub draw_last: Option<Instant>,
+
+    pub test_handle: Option<AbortHandle>,
 }
 
 impl Default for RoomInfo {
@@ -944,6 +961,7 @@ impl Default for RoomInfo {
             users_typing: Default::default(),
             display_names: Default::default(),
             draw_last: Default::default(),
+            test_handle: None,
         }
     }
 }
@@ -1618,6 +1636,8 @@ pub struct ChatStore {
 
     /// Notifications that should be dismissed when the user opens the room.
     pub open_notifications: HashMap<OwnedRoomId, Vec<NotificationHandle>>,
+
+    pub reaction_timings: HashMap<OwnedEventId, Instant>,
 }
 
 impl ChatStore {
@@ -1643,6 +1663,7 @@ impl ChatStore {
             ring_bell: false,
             focused: true,
             open_notifications: Default::default(),
+            reaction_timings: Default::default(),
         }
     }
 

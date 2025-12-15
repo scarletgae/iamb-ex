@@ -16,7 +16,7 @@ use gethostname::gethostname;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::sync::Semaphore;
 use tokio::task::JoinHandle;
-use tracing::{error, warn};
+use tracing::{info, error, warn};
 use url::Url;
 
 use matrix_sdk::{
@@ -1038,6 +1038,14 @@ impl ClientWorker {
                     let room_id = room.room_id();
 
                     let mut locked = store.lock().await;
+
+                    if let Some(server_ack_time) = locked.application.reaction_timings.remove(ev.event_id()) {
+                        info!(
+                            "sync lag: {:?} (eid: {})", 
+                            server_ack_time.elapsed(), 
+                            ev.event_id()
+                        );
+                    }
 
                     let sender = ev.sender().to_owned();
                     let _ = locked.application.presences.get_or_default(sender);

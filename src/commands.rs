@@ -34,6 +34,22 @@ use crate::base::{
 type ProgContext = CommandContext;
 type ProgResult = CommandResult<ProgramCommand>;
 
+fn iamb_stest(desc: CommandDescription, ctx: &mut ProgContext) -> ProgResult {
+    if !desc.arg.text.is_empty() {
+        return Err(CommandError::InvalidArgument);
+    }
+    let act = IambAction::Test(crate::base::TestAction::Start);
+    Ok(CommandStep::Continue(act.into(), ctx.context.clone()))
+}
+
+fn iamb_etest(desc: CommandDescription, ctx: &mut ProgContext) -> ProgResult {
+    if !desc.arg.text.is_empty() {
+        return Err(CommandError::InvalidArgument);
+    }
+    let act = IambAction::Test(crate::base::TestAction::Stop);
+    Ok(CommandStep::Continue(act.into(), ctx.context.clone()))
+}
+
 /// Convert strings the user types into a tag name.
 fn tag_name(name: String) -> Result<TagName, CommandError> {
     let tag = match name.to_lowercase().as_str() {
@@ -833,6 +849,17 @@ fn add_iamb_commands(cmds: &mut ProgramCommands) {
         name: "logout".into(),
         aliases: vec![],
         f: iamb_logout,
+    });
+
+    cmds.add_command(ProgramCommand {
+        name: "stest".into(),
+        aliases: vec![],
+        f: iamb_stest,
+    });
+    cmds.add_command(ProgramCommand {
+        name: "etest".into(),
+        aliases: vec![],
+        f: iamb_etest,
     });
 }
 
