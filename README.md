@@ -2,11 +2,11 @@
 
 by reacting to you own messages you can estimate if someone is using their phone
 
-Here's an example I recorded with this fork
+here's an example I recorded with this fork
 
 <img width="978" height="483" alt="image" src="https://github.com/user-attachments/assets/f036b300-1a69-407d-b6fb-704a0c5b15a8" />
 
-this fork adds the following commands
+the following commands have been added
 
 `:stest` to start a test
 
