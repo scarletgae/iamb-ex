@@ -1,3 +1,20 @@
+# https://arxiv.org/pdf/2411.11194
+
+by reacting to you own messages you can estimate if someone is using their phone
+
+Here's an example I recorded with this fork
+
+<img width="978" height="483" alt="image" src="https://github.com/user-attachments/assets/f036b300-1a69-407d-b6fb-704a0c5b15a8" />
+
+this fork adds the following commands
+
+`:stest` to start a test
+
+`:etest` to end a test
+
+
+
+
 <div align="center">
     <h1><img width="200" height="200" src="docs/iamb.svg"></h1>
 
